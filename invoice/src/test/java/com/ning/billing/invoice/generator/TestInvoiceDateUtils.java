@@ -95,14 +95,23 @@ public class TestInvoiceDateUtils extends InvoiceTestSuiteNoDB {
     }
 
     @Test(groups = "fast")
-    public void testEffectiveEndDate() throws Exception {
+    public void testEffectiveEndDate1() throws Exception {
         final LocalDate firstBCD = new LocalDate(2012, 7, 16);
         final LocalDate targetDate = new LocalDate(2012, 8, 16);
         final BillingPeriod billingPeriod = BillingPeriod.MONTHLY;
-        final LocalDate effectiveEndDate = InvoiceDateUtils.calculateEffectiveEndDate(firstBCD, targetDate, billingPeriod);
-        // TODO should that be 2012-09-15?
+        final LocalDate effectiveEndDate = InvoiceDateUtils.calculateEffectiveEndDate(firstBCD, targetDate, billingPeriod, 16);
         Assert.assertEquals(effectiveEndDate, new LocalDate(2012, 9, 16));
     }
+
+    @Test(groups = "fast")
+    public void testEffectiveEndDate2() throws Exception {
+        final LocalDate firstBCD = new LocalDate(2013, 9, 30);
+        final LocalDate targetDate = new LocalDate(2013, 9, 30);
+        final BillingPeriod billingPeriod = BillingPeriod.MONTHLY;
+        final LocalDate effectiveEndDate = InvoiceDateUtils.calculateEffectiveEndDate(firstBCD, targetDate, billingPeriod, 31);
+        Assert.assertEquals(effectiveEndDate, new LocalDate(2013, 10, 31));
+    }
+
 
     @Test(groups = "fast")
     public void testLastBCD() throws Exception {

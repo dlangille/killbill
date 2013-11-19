@@ -34,6 +34,7 @@ import static com.ning.billing.invoice.generator.InvoiceDateUtils.calculateLastB
 import static com.ning.billing.invoice.generator.InvoiceDateUtils.calculateNumberOfWholeBillingPeriods;
 import static com.ning.billing.invoice.generator.InvoiceDateUtils.calculateProRationAfterLastBillingCycleDate;
 import static com.ning.billing.invoice.generator.InvoiceDateUtils.calculateProRationBeforeFirstBillingPeriod;
+import static com.ning.billing.invoice.generator.InvoiceDateUtils.alignProposedBillCycleDate;
 
 public class InAdvanceBillingMode implements BillingMode {
 
@@ -91,9 +92,9 @@ public class InAdvanceBillingMode implements BillingMode {
         //
         final LocalDate effectiveEndDate;
         if (endDate != null) {
-            effectiveEndDate = calculateEffectiveEndDate(firstBillingCycleDate, targetDate, endDate, billingPeriod);
+            effectiveEndDate = calculateEffectiveEndDate(firstBillingCycleDate, targetDate, endDate, billingPeriod, billingCycleDayLocal);
         } else {
-            effectiveEndDate = calculateEffectiveEndDate(firstBillingCycleDate, targetDate, billingPeriod);
+            effectiveEndDate = calculateEffectiveEndDate(firstBillingCycleDate, targetDate, billingPeriod, billingCycleDayLocal);
         }
 
         //
@@ -116,7 +117,8 @@ public class InAdvanceBillingMode implements BillingMode {
             }
 
             // Make sure to align the end date with the BCD
-            final LocalDate servicePeriodEndDate = firstBillingCycleDate.plusMonths((i + 1) * numberOfMonthsPerBillingPeriod);
+            final LocalDate nonAlignedEndPeriod = firstBillingCycleDate.plusMonths((i + 1) * numberOfMonthsPerBillingPeriod);
+            final LocalDate servicePeriodEndDate = alignProposedBillCycleDate(billingCycleDayLocal, nonAlignedEndPeriod);
 
             results.add(new RecurringInvoiceItemData(servicePeriodStartDate, servicePeriodEndDate, BigDecimal.ONE));
         }
