@@ -56,12 +56,8 @@ public class TestStringTemplateInheritance extends UtilTestSuiteNoDB {
 
     @Test(groups = "fast")
     public void testCheckQueries() throws Exception {
-        // From http://www.antlr.org/wiki/display/ST/ST+condensed+--+Templates+and+groups#STcondensed--Templatesandgroups-Withsupergroupfile:
-        //     there is no mechanism for automatically loading a mentioned super-group file
-        new StringTemplateGroup(new InputStreamReader(entityStream));
 
-        final StringTemplateGroup kombucha = new StringTemplateGroup(new InputStreamReader(kombuchaStream));
-
+        final StringTemplateGroup kombucha = new StringTemplateGroup(new InputStreamReader(kombuchaStream), null, null, new StringTemplateGroup(new InputStreamReader(entityStream)));
         // Verify non inherited template
         Assert.assertEquals(kombucha.getInstanceOf("isIsTimeForKombucha").toString(), "select hour(current_timestamp()) = 17 as is_time;");
 
@@ -78,6 +74,22 @@ public class TestStringTemplateInheritance extends UtilTestSuiteNoDB {
                                                                           "where t.id = :id\n" +
                                                                           "and t.tenant_record_id = :tenantRecordId\n" +
                                                                           ";");
+
+
+        // Verify inherited templates
+        Assert.assertEquals(kombucha.getInstanceOf("getById").toString(), "select\n" +
+                                                                          "  t.record_id\n" +
+                                                                          ", t.id\n" +
+                                                                          ", t.tea\n" +
+                                                                          ", t.mushroom\n" +
+                                                                          ", t.sugar\n" +
+                                                                          ", t.account_record_id\n" +
+                                                                          ", t.tenant_record_id\n" +
+                                                                          "from kombucha t\n" +
+                                                                          "where t.id = :id\n" +
+                                                                          "and t.tenant_record_id = :tenantRecordId\n" +
+                                                                          ";");
+
         Assert.assertEquals(kombucha.getInstanceOf("getByRecordId").toString(), "select\n" +
                                                                                 "  t.record_id\n" +
                                                                                 ", t.id\n" +

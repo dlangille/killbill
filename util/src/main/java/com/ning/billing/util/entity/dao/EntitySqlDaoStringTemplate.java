@@ -24,6 +24,10 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
 
 import org.skife.jdbi.v2.Query;
 import org.skife.jdbi.v2.SQLStatement;
@@ -48,18 +52,36 @@ public @interface EntitySqlDaoStringTemplate {
 
     public static class EntitySqlDaoLocatorFactory extends UseStringTemplate3StatementLocator.LocatorFactory {
 
+        final static boolean enableGroupTemplateCaching = Boolean.parseBoolean(System.getProperty("killbill.jdbi.allow.stringTemplateGroupCaching", "true"));
+
+        static ConcurrentMap<String, StatementLocator> locatorCache = new ConcurrentHashMap<String, StatementLocator>();
+
+        // Similar to what jdbi is doing (StringTemplate3StatementLocator)
+        private final static String sep = "/"; // *Not* System.getProperty("file.separator"), which breaks in jars
+
+        public static String mungify(final Class claz) {
+            final String path = "/" + claz.getName();
+            return path.replaceAll("\\.", Matcher.quoteReplacement(sep)) + ".sql.stg";
+        }
+
+        private static StatementLocator getLocator(final String locatorPath) {
+
+            if (enableGroupTemplateCaching && locatorCache.containsKey(locatorPath)) {
+                return locatorCache.get(locatorPath);
+            }
+            final StatementLocator locator = new StringTemplate3StatementLocator(locatorPath, true, true, EntitySqlDao.class);
+            if (enableGroupTemplateCaching) {
+                locatorCache.put(locatorPath, locator);
+            }
+            return locator;
+        }
+
         public SqlStatementCustomizer createForType(final Annotation annotation, final Class sqlObjectType) {
-            // From http://www.antlr.org/wiki/display/ST/ST+condensed+--+Templates+and+groups#STcondensed--Templatesandgroups-Withsupergroupfile:
-            //     there is no mechanism for automatically loading a mentioned super-group file
-            new StringTemplate3StatementLocator(EntitySqlDao.class, true, true);
 
             final EntitySqlDaoStringTemplate a = (EntitySqlDaoStringTemplate) annotation;
-            final StatementLocator l;
-            if (DEFAULT_VALUE.equals(a.value())) {
-                l = new StringTemplate3StatementLocator(sqlObjectType, true, true);
-            } else {
-                l = new StringTemplate3StatementLocator(a.value(), true, true);
-            }
+
+            final String locatorPath = DEFAULT_VALUE.equals(a.value()) ? mungify(sqlObjectType) : a.value();
+            final StatementLocator l = getLocator(locatorPath);
 
             return new SqlStatementCustomizer() {
                 public void apply(final SQLStatement statement) {
